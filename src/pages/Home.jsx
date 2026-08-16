@@ -172,7 +172,7 @@ export default function Home({ onRefresh, onOpenNotifications, onOpenHelp }) {
   if (view === 'home') {
     return (
       <div className={pageClass}>
-        <div className="flex items-center justify-between px-5 pt-16 pb-8">
+        <div className="flex items-center justify-between px-5 pt-10 pb-6">
           <button
             onClick={onOpenHelp}
             className="btn-ripple w-9 h-9 rounded-full bg-[#1e1e1e] flex items-center justify-center shadow-sm active:scale-95 transition-transform"
