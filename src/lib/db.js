@@ -10,13 +10,20 @@ export async function getTasksByDate(dateStr) {
   return db.tasks.where('due_date').equals(dateStr).toArray()
 }
 
+function localDateStr(date = new Date()) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export async function getTodayTasks() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   return db.tasks.where('due_date').equals(today).sortBy('due_time')
 }
 
 export async function getUpcomingTasks() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
   const all = await db.tasks.where('due_date').above(today).sortBy('due_date')
   return all
 }
