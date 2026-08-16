@@ -19,13 +19,16 @@ function AppInner() {
   const [ready, setReady] = useState(isStandalone)
   const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem('remindly_onboarded'))
   const [installPrompt, setInstallPrompt] = useState(null)
+  // Banner hanya muncul sekali - jika sudah pernah di-dismiss, tidak muncul lagi
   const [showInstallBanner, setShowInstallBanner] = useState(false)
 
   useEffect(() => {
+    const dismissed = localStorage.getItem('remindly_install_dismissed')
     const handler = (e) => {
       e.preventDefault()
       setInstallPrompt(e)
-      setShowInstallBanner(true)
+      // Hanya tampilkan banner jika belum pernah di-dismiss
+      if (!dismissed) setShowInstallBanner(true)
     }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
@@ -41,6 +44,11 @@ function AppInner() {
     }
   }
 
+  const dismissBanner = () => {
+    setShowInstallBanner(false)
+    localStorage.setItem('remindly_install_dismissed', '1')
+  }
+
   useEffect(() => {
     async function init() {
       if (onboarded) await requestNotificationPermission()
@@ -50,13 +58,8 @@ function AppInner() {
     init()
   }, [onboarded])
 
-  if (!ready) {
-    return <SplashScreen onDone={() => setReady(true)} />
-  }
-
-  if (!onboarded) {
-    return <Onboarding onDone={() => setOnboarded(true)} />
-  }
+  if (!ready) return <SplashScreen onDone={() => setReady(true)} />
+  if (!onboarded) return <Onboarding onDone={() => setOnboarded(true)} />
 
   if (overlay === 'notifications') {
     return (
@@ -100,7 +103,7 @@ function AppInner() {
               background: '#e3e2dc', color: '#161616', border: 'none',
               borderRadius: 10, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer'
             }}>Install</button>
-            <button onClick={() => setShowInstallBanner(false)} style={{
+            <button onClick={dismissBanner} style={{
               background: 'none', border: 'none', color: '#555', cursor: 'pointer',
               padding: '4px', fontSize: 18, lineHeight: 1
             }}>×</button>
@@ -115,7 +118,9 @@ function AppInner() {
           />
         )}
         {page === 'calendar' && <CalendarPage key={refreshKey} />}
-        {page === 'settings' && <SettingsPage />}
+        {page === 'settings' && (
+          <SettingsPage installPrompt={installPrompt} onInstall={handleInstall} />
+        )}
         <Nav current={page} onChange={setPage} />
       </div>
     </div>

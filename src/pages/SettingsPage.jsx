@@ -3,32 +3,17 @@ import { requestNotificationPermission } from '../lib/notifications'
 import { db } from '../lib/db'
 import { useLang } from '../lib/LangContext'
 
-export default function SettingsPage() {
+export default function SettingsPage({ installPrompt, onInstall }) {
   const { t, lang, setLang } = useLang()
   const [notifPermission, setNotifPermission] = useState('default')
   const [taskCount, setTaskCount] = useState(0)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [installPrompt, setInstallPrompt] = useState(null)
   const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
 
   useEffect(() => {
     setNotifPermission(Notification?.permission || 'unsupported')
     db.tasks.count().then(setTaskCount)
-
-    const handler = (e) => {
-      e.preventDefault()
-      setInstallPrompt(e)
-    }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
-
-  const handleInstall = async () => {
-    if (!installPrompt) return
-    installPrompt.prompt()
-    const { outcome } = await installPrompt.userChoice
-    if (outcome === 'accepted') setInstallPrompt(null)
-  }
 
   async function handleRequestNotif() {
     const result = await requestNotificationPermission()
@@ -51,6 +36,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-[#161616] pb-24 px-4 pt-14">
       <h1 className="text-lg font-bold text-ink tracking-tight mb-6">{t.settings}</h1>
+
       <section className="mb-7">
         <h2 className="text-2xs font-bold text-ink-muted uppercase tracking-wider mb-3">{t.language}</h2>
         {(() => {
@@ -134,24 +120,30 @@ export default function SettingsPage() {
 
       {!isInstalled && (
         <section className="mb-7">
-          <h2 className="text-2xs font-bold text-ink-muted uppercase tracking-wider mb-3">INSTALL APLIKASI</h2>
+          <h2 className="text-2xs font-bold text-ink-muted uppercase tracking-wider mb-3">
+            {lang === 'id' ? 'INSTALL APLIKASI' : 'INSTALL APP'}
+          </h2>
           <div className="border border-border rounded-2xl p-4 bg-surface">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-ink">Pasang di Homescreen</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-ink">
+                  {lang === 'id' ? 'Pasang di Homescreen' : 'Add to Home Screen'}
+                </p>
                 <p className="text-xs text-ink-muted mt-0.5">
-                  {installPrompt ? 'Tersedia untuk diinstall' : 'Buka di Chrome untuk install'}
+                  {installPrompt
+                    ? (lang === 'id' ? 'Siap diinstall ke perangkat' : 'Ready to install on device')
+                    : (lang === 'id' ? 'Sudah diinstall atau buka lewat Chrome' : 'Already installed or open via Chrome')}
                 </p>
               </div>
               {installPrompt ? (
                 <button
-                  onClick={handleInstall}
-                  className="text-xs font-bold text-[#161616] bg-[#e3e2dc] rounded-lg px-3 py-2"
+                  onClick={onInstall}
+                  className="flex-shrink-0 text-sm font-bold text-[#161616] bg-[#e3e2dc] rounded-xl px-4 py-2 active:scale-95 transition-transform"
                 >
                   Install
                 </button>
               ) : (
-                <span className="text-xs text-[#666]">—</span>
+                <span className="text-xs text-emerald-400 font-semibold">✓</span>
               )}
             </div>
           </div>
