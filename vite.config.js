@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icons/*.png', 'logo.png'],
       manifest: {
-        name: 'Remindo',
-        short_name: 'Remindo',
+        name: 'Remindly',
+        short_name: 'Remindly',
         description: 'Smart reminder app with natural language input',
         theme_color: '#111111',
         background_color: '#ffffff',
