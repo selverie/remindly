@@ -15,7 +15,8 @@ function AppInner() {
   const [page, setPage] = useState('home')
   const [overlay, setOverlay] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [ready, setReady] = useState(false)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  const [ready, setReady] = useState(isStandalone)
   const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem('remindly_onboarded'))
   const [installPrompt, setInstallPrompt] = useState(null)
   const [showInstallBanner, setShowInstallBanner] = useState(false)

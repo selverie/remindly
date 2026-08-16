@@ -8,11 +8,27 @@ export default function SettingsPage() {
   const [notifPermission, setNotifPermission] = useState('default')
   const [taskCount, setTaskCount] = useState(0)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
 
   useEffect(() => {
     setNotifPermission(Notification?.permission || 'unsupported')
     db.tasks.count().then(setTaskCount)
+
+    const handler = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
+
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') setInstallPrompt(null)
+  }
 
   async function handleRequestNotif() {
     const result = await requestNotificationPermission()
@@ -115,6 +131,32 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {!isInstalled && (
+        <section className="mb-7">
+          <h2 className="text-2xs font-bold text-ink-muted uppercase tracking-wider mb-3">INSTALL APLIKASI</h2>
+          <div className="border border-border rounded-2xl p-4 bg-surface">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-ink">Pasang di Homescreen</p>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  {installPrompt ? 'Tersedia untuk diinstall' : 'Buka di Chrome untuk install'}
+                </p>
+              </div>
+              {installPrompt ? (
+                <button
+                  onClick={handleInstall}
+                  className="text-xs font-bold text-[#161616] bg-[#e3e2dc] rounded-lg px-3 py-2"
+                >
+                  Install
+                </button>
+              ) : (
+                <span className="text-xs text-[#666]">—</span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-2xs font-bold text-ink-muted uppercase tracking-wider mb-3">{t.about}</h2>

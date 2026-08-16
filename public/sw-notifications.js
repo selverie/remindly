@@ -107,9 +107,20 @@ self.addEventListener('notificationclick', event => {
   )
 })
 
-self.addEventListener('activate', event => {
-  event.waitUntil(checkReminders())
+self.addEventListener('install', event => {
+  self.skipWaiting()
 })
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    self.clients.claim().then(() => checkReminders())
+  )
+})
+
+// Polling setiap 1 menit agar notif tetap jalan walau app ditutup
+setInterval(() => {
+  checkReminders()
+}, 60 * 1000)
 
 self.addEventListener('fetch', () => {
 })
