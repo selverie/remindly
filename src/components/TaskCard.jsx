@@ -39,7 +39,8 @@ export default function TaskCard({ task, onUpdate }) {
       due_date: editDate || null,
       due_time: editTime || null,
       priority: editPriority,
-      category: editCategory
+      category: editCategory,
+      reminder_before_minutes: editTime ? (task.reminder_before_minutes ?? 10) : null,
     }
     await updateTask(task.id, changes)
     scheduleTaskReminder({ ...task, ...changes })
