@@ -96,7 +96,9 @@ export async function cancelTaskReminder(taskId) {
 }
 
 export async function scheduleAllReminders(tasks) {
-  await registerSWNotif()
+  const sw = await registerSWNotif()
+  // Cek reminder yang mungkin terlewat saat app ditutup
+  if (sw) sw.postMessage({ type: 'CHECK_NOW' })
   tasks.forEach(task => {
     if (!task.completed) scheduleTaskReminder(task)
   })

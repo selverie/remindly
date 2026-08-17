@@ -51,15 +51,20 @@ async function checkReminders() {
   const reminders = await getAllReminders()
 
   for (const reminder of reminders) {
-    if (reminder.fireAt <= now) {
-      await self.registration.showNotification('⏰ Remindly', {
+    // Tampilkan jika sudah waktunya, atau reminder terlewat tapi due time belum lewat
+    const dueAt = new Date(`${reminder.due_date}T${reminder.due_time}:00`).getTime()
+    if (reminder.fireAt <= now && now < dueAt) {
+      await self.registration.showNotification('Remindly', {
         body: `${reminder.title} • ${reminder.due_time}`,
         icon: '/logo.png',
-        badge: '/logo.png',
+        badge: '/icons/icon-192.png',
         tag: `task-${reminder.taskId}`,
         requireInteraction: true,
         data: { taskId: reminder.taskId }
       })
+      await deleteReminder(reminder.taskId)
+    } else if (reminder.fireAt <= now && now >= dueAt) {
+      // Due time sudah lewat, buang saja
       await deleteReminder(reminder.taskId)
     }
   }
@@ -74,14 +79,32 @@ self.addEventListener('message', async event => {
 
     const dueDateTime = new Date(`${due_date}T${due_time}:00`).getTime()
     const fireAt = dueDateTime - reminder_before_minutes * 60 * 1000
+    const now = Date.now()
 
-    if (fireAt <= Date.now()) return
+    // Jika reminder sudah lewat tapi due time belum → tampilkan sekarang
+    if (fireAt <= now && now < dueDateTime) {
+      await self.registration.showNotification('Remindly', {
+        body: `${title} • ${due_time}`,
+        icon: '/logo.png',
+        badge: '/icons/icon-192.png',
+        tag: `task-${taskId}`,
+        requireInteraction: true,
+        data: { taskId }
+      })
+      return
+    }
+
+    if (fireAt <= now) return
 
     await saveReminder({ taskId, title, due_date, due_time, fireAt })
   }
 
   if (type === 'CANCEL_REMINDER') {
     await deleteReminder(payload.taskId)
+  }
+
+  if (type === 'CHECK_NOW') {
+    await checkReminders()
   }
 
   if (type === 'CANCEL_ALL') {
@@ -117,10 +140,4 @@ self.addEventListener('activate', event => {
   )
 })
 
-// Polling setiap 1 menit agar notif tetap jalan walau app ditutup
-setInterval(() => {
-  checkReminders()
-}, 60 * 1000)
-
-self.addEventListener('fetch', () => {
-})
+self.addEventListener('fetch', () => {})
