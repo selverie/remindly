@@ -46,32 +46,53 @@ async function deleteReminder(taskId) {
   })
 }
 
+function broadcastLog(msg) {
+  self.clients.matchAll({ includeUncontrolled: true }).then(clients => {
+    clients.forEach(c => c.postMessage({ type: 'SW_LOG', msg }))
+  })
+}
+
+async function showRemindlyNotification(taskId, title, due_time) {
+  broadcastLog(`[SW] showNotification → "${title}" • ${due_time}`)
+  try {
+    await self.registration.showNotification('Remindly', {
+      body: `${title} • ${due_time}`,
+      icon: '/logo.png',
+      badge: '/icons/icon-192.png',
+      tag: `task-${taskId}`,
+      requireInteraction: true,
+      data: { taskId }
+    })
+    broadcastLog(`[SW] ✅ showNotification berhasil`)
+  } catch (err) {
+    broadcastLog(`[SW] ❌ showNotification gagal: ${err.message}`)
+  }
+}
+
 async function checkReminders() {
   const now = Date.now()
   const reminders = await getAllReminders()
+  broadcastLog(`[SW] checkReminders → ${reminders.length} reminder(s), now=${new Date(now).toLocaleTimeString('id-ID')}`)
 
   for (const reminder of reminders) {
-    // Tampilkan jika sudah waktunya, atau reminder terlewat tapi due time belum lewat
     const dueAt = new Date(`${reminder.due_date}T${reminder.due_time}:00`).getTime()
+    broadcastLog(`[SW] cek "${reminder.title}": fireAt=${new Date(reminder.fireAt).toLocaleTimeString('id-ID')}, dueAt=${new Date(dueAt).toLocaleTimeString('id-ID')}`)
+
     if (reminder.fireAt <= now && now < dueAt) {
-      await self.registration.showNotification('Remindly', {
-        body: `${reminder.title} • ${reminder.due_time}`,
-        icon: '/logo.png',
-        badge: '/icons/icon-192.png',
-        tag: `task-${reminder.taskId}`,
-        requireInteraction: true,
-        data: { taskId: reminder.taskId }
-      })
+      await showRemindlyNotification(reminder.taskId, reminder.title, reminder.due_time)
       await deleteReminder(reminder.taskId)
-    } else if (reminder.fireAt <= now && now >= dueAt) {
-      // Due time sudah lewat, buang saja
+    } else if (now >= dueAt) {
+      broadcastLog(`[SW] buang "${reminder.title}": due time sudah lewat`)
       await deleteReminder(reminder.taskId)
+    } else {
+      broadcastLog(`[SW] pending "${reminder.title}": belum waktunya (${Math.round((reminder.fireAt - now) / 1000)}s lagi)`)
     }
   }
 }
 
 self.addEventListener('message', async event => {
   const { type, payload } = event.data || {}
+  broadcastLog(`[SW] message: ${type}`)
 
   if (type === 'SCHEDULE_REMINDER') {
     const { taskId, title, due_date, due_time, reminder_before_minutes } = payload
@@ -81,22 +102,21 @@ self.addEventListener('message', async event => {
     const fireAt = dueDateTime - reminder_before_minutes * 60 * 1000
     const now = Date.now()
 
-    // Jika reminder sudah lewat tapi due time belum → tampilkan sekarang
+    broadcastLog(`[SW] SCHEDULE "${title}": fireAt=${new Date(fireAt).toLocaleTimeString('id-ID')}, delay=${Math.round((fireAt - now) / 1000)}s`)
+
     if (fireAt <= now && now < dueDateTime) {
-      await self.registration.showNotification('Remindly', {
-        body: `${title} • ${due_time}`,
-        icon: '/logo.png',
-        badge: '/icons/icon-192.png',
-        tag: `task-${taskId}`,
-        requireInteraction: true,
-        data: { taskId }
-      })
+      broadcastLog(`[SW] reminder sudah lewat tapi due belum → tampilkan sekarang`)
+      await showRemindlyNotification(taskId, title, due_time)
       return
     }
 
-    if (fireAt <= now) return
+    if (fireAt <= now) {
+      broadcastLog(`[SW] skip: due time sudah lewat`)
+      return
+    }
 
     await saveReminder({ taskId, title, due_date, due_time, fireAt })
+    broadcastLog(`[SW] ✅ reminder tersimpan`)
   }
 
   if (type === 'CANCEL_REMINDER') {

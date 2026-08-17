@@ -14,6 +14,8 @@ import { LangProvider } from './lib/LangContext'
 function AppInner() {
   const [page, setPage] = useState('home')
   const [overlay, setOverlay] = useState(null)
+  const [swLogs, setSwLogs] = useState([])
+  const [showSwLogs, setShowSwLogs] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
   const [ready, setReady] = useState(isStandalone)
@@ -57,6 +59,18 @@ function AppInner() {
     }
     init()
   }, [onboarded])
+
+  // Debug: tangkap log dari Service Worker
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const handler = (event) => {
+      if (event.data?.type === 'SW_LOG') {
+        setSwLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString('id-ID')} ${event.data.msg}`])
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handler)
+    return () => navigator.serviceWorker.removeEventListener('message', handler)
+  }, [])
 
   if (!ready) return <SplashScreen onDone={() => setReady(true)} />
   if (!onboarded) return <Onboarding onDone={() => setOnboarded(true)} />
@@ -122,6 +136,37 @@ function AppInner() {
           <SettingsPage installPrompt={installPrompt} onInstall={handleInstall} />
         )}
         <Nav current={page} onChange={setPage} />
+
+        {/* Debug Panel SW - ketuk 5x pojok kiri bawah untuk buka */}
+        <div
+          onDoubleClick={() => setShowSwLogs(v => !v)}
+          style={{ position: 'fixed', bottom: 0, left: 0, width: 40, height: 40, zIndex: 99999, opacity: 0 }}
+        />
+        {showSwLogs && (
+          <div style={{
+            position: 'fixed', inset: 0, background: '#0d0d0d', zIndex: 99998,
+            display: 'flex', flexDirection: 'column', fontFamily: 'monospace'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #222' }}>
+              <span style={{ color: '#e3e2dc', fontWeight: 700, fontSize: 14 }}>SW Debug Log</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setSwLogs([])} style={{ background: '#333', color: '#aaa', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Clear</button>
+                <button onClick={() => setShowSwLogs(false)} style={{ background: '#333', color: '#aaa', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>Tutup</button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+              {swLogs.length === 0
+                ? <p style={{ color: '#555', fontSize: 12 }}>Belum ada log. Buka app, tambah task, atau tunggu reminder.</p>
+                : swLogs.map((log, i) => (
+                  <p key={i} style={{
+                    color: log.includes('❌') ? '#f87171' : log.includes('✅') ? '#4ade80' : '#aaa',
+                    fontSize: 11, margin: '2px 0', lineHeight: 1.5, wordBreak: 'break-all'
+                  }}>{log}</p>
+                ))
+              }
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
