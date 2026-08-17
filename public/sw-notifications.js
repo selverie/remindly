@@ -47,7 +47,7 @@ async function deleteReminder(taskId) {
 }
 
 function broadcastLog(msg) {
-  self.clients.matchAll({ includeUncontrolled: true }).then(clients => {
+  self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(clients => {
     clients.forEach(c => c.postMessage({ type: 'SW_LOG', msg }))
   })
 }
@@ -115,8 +115,12 @@ self.addEventListener('message', async event => {
       return
     }
 
-    await saveReminder({ taskId, title, due_date, due_time, fireAt })
-    broadcastLog(`[SW] ✅ reminder tersimpan`)
+    try {
+      await saveReminder({ taskId, title, due_date, due_time, fireAt })
+      broadcastLog(`[SW] ✅ reminder tersimpan`)
+    } catch (err) {
+      broadcastLog(`[SW] ❌ error: ${err.message}`)
+    }
   }
 
   if (type === 'CANCEL_REMINDER') {
