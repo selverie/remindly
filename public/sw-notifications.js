@@ -154,7 +154,10 @@ self.addEventListener('notificationclick', event => {
   )
 })
 
+const SW_VERSION = '5'
+
 self.addEventListener('install', event => {
+  console.log('[SW] install v' + SW_VERSION)
   self.skipWaiting()
 })
 

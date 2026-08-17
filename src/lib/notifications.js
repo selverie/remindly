@@ -80,8 +80,12 @@ export async function scheduleTaskReminder(task) {
   broadcastLog(`[Notif] getSWNotif: ${sw ? 'ada' : 'null'}`)
   if (!sw) sw = await registerSWNotif()
   broadcastLog(`[Notif] sw setelah register: ${sw ? 'ada' : 'null'}, state=${sw?.state}`)
-  if (sw) {
-    sw.postMessage({
+
+  // Gunakan controller yang benar-benar aktif mengontrol halaman ini
+  const controller = navigator.serviceWorker.controller || sw
+  broadcastLog(`[Notif] controller: ${controller ? 'ada' : 'null'}`)
+  if (controller) {
+    controller.postMessage({
       type: 'SCHEDULE_REMINDER',
       payload: {
         taskId: task.id,
