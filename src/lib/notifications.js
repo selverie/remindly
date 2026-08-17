@@ -77,7 +77,9 @@ export async function scheduleTaskReminder(task) {
   if (delay <= 0) return
 
   let sw = await getSWNotif()
+  broadcastLog(`[Notif] getSWNotif: ${sw ? 'ada' : 'null'}`)
   if (!sw) sw = await registerSWNotif()
+  broadcastLog(`[Notif] sw setelah register: ${sw ? 'ada' : 'null'}, state=${sw?.state}`)
   if (sw) {
     sw.postMessage({
       type: 'SCHEDULE_REMINDER',
@@ -89,6 +91,9 @@ export async function scheduleTaskReminder(task) {
         reminder_before_minutes: task.reminder_before_minutes,
       }
     })
+    broadcastLog(`[Notif] postMessage SCHEDULE_REMINDER terkirim`)
+  } else {
+    broadcastLog(`[Notif] sw null, postMessage tidak terkirim`)
   }
 
   if (scheduledTimers.has(task.id)) clearTimeout(scheduledTimers.get(task.id))
