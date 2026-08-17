@@ -72,6 +72,15 @@ function AppInner() {
     return () => navigator.serviceWorker.removeEventListener('message', handler)
   }, [])
 
+  // Tangkap log dari main thread (notifications.js dll)
+  useEffect(() => {
+    const handler = (e) => {
+      setSwLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString('id-ID')} ${e.detail}`])
+    }
+    window.addEventListener('app_log', handler)
+    return () => window.removeEventListener('app_log', handler)
+  }, [])
+
   if (!ready) return <SplashScreen onDone={() => setReady(true)} />
   if (!onboarded) return <Onboarding onDone={() => setOnboarded(true)} />
 

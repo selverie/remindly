@@ -46,9 +46,22 @@ function fireNotification(task) {
 
 const scheduledTimers = new Map()
 
+function broadcastLog(msg) {
+  navigator.serviceWorker?.controller?.postMessage({ type: 'SW_LOG', msg })
+  // fallback: kirim langsung ke semua client via custom event
+  window.dispatchEvent(new CustomEvent('app_log', { detail: msg }))
+}
+
 export async function scheduleTaskReminder(task) {
-  if (!task.due_date || !task.due_time || !task.reminder_before_minutes) return
-  if (Notification.permission !== 'granted') return
+  broadcastLog(`[Notif] scheduleTaskReminder: id=${task.id}, due_time=${task.due_time}, reminder_before_minutes=${task.reminder_before_minutes}, permission=${Notification.permission}`)
+  if (!task.due_date || !task.due_time || !task.reminder_before_minutes) {
+    broadcastLog(`[Notif] return early: missing due_date/due_time/reminder_before_minutes`)
+    return
+  }
+  if (Notification.permission !== 'granted') {
+    broadcastLog(`[Notif] return early: permission=${Notification.permission}`)
+    return
+  }
 
   const dueDateTime = new Date(`${task.due_date}T${task.due_time}:00`)
   const reminderTime = new Date(dueDateTime.getTime() - task.reminder_before_minutes * 60 * 1000)
